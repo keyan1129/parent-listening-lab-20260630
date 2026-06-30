@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Parent Listening Lab</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <button class="brand" id="homeButton" aria-label="回到今日任务">
+          <span class="brand-mark">PL</span>
+          <span>Parent Listening Lab</span>
+        </button>
+        <nav class="icon-nav" aria-label="工具">
+          <button class="icon-button" data-panel="library" title="材料库" aria-label="材料库">
+            <i data-lucide="library"></i>
+          </button>
+          <button class="icon-button" data-panel="notes" title="笔记" aria-label="笔记">
+            <i data-lucide="notebook-pen"></i>
+          </button>
+          <button class="icon-button" data-panel="progress" title="进度" aria-label="进度">
+            <i data-lucide="chart-no-axes-column-increasing"></i>
+          </button>
+          <button class="icon-button" data-panel="guide" title="训练方法" aria-label="训练方法">
+            <i data-lucide="circle-help"></i>
+          </button>
+        </nav>
+      </header>
+
+      <main class="today-view" aria-live="polite">
+        <section class="task-card">
+          <div class="task-kicker">
+            <span>今日任务</span>
+            <button class="icon-button subtle" id="pickToday" title="换一个任务" aria-label="换一个任务">
+              <i data-lucide="refresh-cw"></i>
+            </button>
+          </div>
+
+          <div class="task-title-row">
+            <div>
+              <p class="source-line" id="selectedMeta">准备中</p>
+              <h1 id="selectedTitle">选择一个材料开始</h1>
+            </div>
+            <div class="source-mark" id="sourceMark">LAB</div>
+          </div>
+
+          <div class="tag-strip" id="selectedTags"></div>
+          <p class="task-context" id="selectedFit"></p>
+
+          <div class="primary-actions">
+            <a class="primary-link" id="openSource" href="#" target="_blank" rel="noreferrer">
+              <i data-lucide="external-link"></i>
+              打开原材料
+            </a>
+            <button class="icon-button subtle" id="toggleReview" title="加入复习" aria-label="加入复习">
+              <i data-lucide="bookmark"></i>
+            </button>
+          </div>
+
+          <div class="task-steps" id="trainingSteps"></div>
+
+          <footer class="task-footer">
+            <span id="taskEstimate">预计 40 分钟</span>
+            <button class="text-button" id="toggleDone">标记完成</button>
+          </footer>
+        </section>
+
+      </main>
+    </div>
+
+    <div class="drawer-backdrop" id="drawerBackdrop" hidden></div>
+    <aside class="drawer" id="drawer" aria-hidden="true" aria-label="工具面板">
+      <header class="drawer-header">
+        <div>
+          <p class="drawer-eyebrow" id="drawerEyebrow">工具</p>
+          <h2 id="drawerTitle">面板</h2>
+        </div>
+        <button class="icon-button subtle" id="closeDrawer" title="关闭" aria-label="关闭">
+          <i data-lucide="x"></i>
+        </button>
+      </header>
+      <div class="drawer-body" id="drawerBody"></div>
+    </aside>
+
+    <script src="./vendor/lucide.min.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
