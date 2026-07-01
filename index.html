@@ -32,10 +32,13 @@
       <main class="today-view" aria-live="polite">
         <section class="task-card">
           <div class="task-kicker">
-            <span>今日任务</span>
-            <button class="icon-button subtle" id="pickToday" title="换一个任务" aria-label="换一个任务">
-              <i data-lucide="refresh-cw"></i>
-            </button>
+            <span id="taskModeLabel">印度节奏专项</span>
+            <div class="task-controls">
+              <button class="mode-button active" id="focusIndian" type="button">印度节奏</button>
+              <button class="icon-button subtle" id="pickToday" title="换一个任务" aria-label="换一个任务">
+                <i data-lucide="refresh-cw"></i>
+              </button>
+            </div>
           </div>
 
           <div class="task-title-row">
@@ -48,6 +51,7 @@
 
           <div class="tag-strip" id="selectedTags"></div>
           <p class="task-context" id="selectedFit"></p>
+          <p class="drill-hint" id="drillHint"></p>
 
           <div class="primary-actions">
             <a class="primary-link" id="openSource" href="#" target="_blank" rel="noreferrer">

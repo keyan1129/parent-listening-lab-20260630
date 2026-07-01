@@ -529,11 +529,21 @@ const materials = [
   }
 ];
 
+const programVersion = "india-rhythm-v1";
+const indiaDrillOrder = [
+  "elllo-india-school",
+  "elllo-india-family",
+  "indianexpress-disclosure",
+  "indianexpress-ai-education",
+  "indianexpress-midday-meal"
+];
+
 const storageKey = "parent-listening-lab";
 const progress = loadProgress();
+normalizeProgram();
 
 const state = {
-  selectedId: progress.selectedId || materials[0].id,
+  selectedId: progress.selectedId || indiaDrillOrder[0],
   filters: {
     scene: new Set(),
     accent: new Set(),
@@ -541,15 +551,19 @@ const state = {
     query: ""
   },
   sort: "priority",
+  focusMode: progress.focusMode || "india",
   activePanel: null
 };
 
 const els = {
   homeButton: document.querySelector("#homeButton"),
+  focusIndian: document.querySelector("#focusIndian"),
+  taskModeLabel: document.querySelector("#taskModeLabel"),
   pickToday: document.querySelector("#pickToday"),
   selectedMeta: document.querySelector("#selectedMeta"),
   selectedTitle: document.querySelector("#selectedTitle"),
   selectedFit: document.querySelector("#selectedFit"),
+  drillHint: document.querySelector("#drillHint"),
   selectedTags: document.querySelector("#selectedTags"),
   openSource: document.querySelector("#openSource"),
   sourceMark: document.querySelector("#sourceMark"),
@@ -574,15 +588,34 @@ function loadProgress() {
       notes: {},
       steps: {},
       ratings: {},
-      selectedId: ""
+      selectedId: "",
+      focusMode: "india",
+      trainingVersion: ""
     };
   } catch {
-    return { done: [], review: [], notes: {}, steps: {}, ratings: {}, selectedId: "" };
+    return { done: [], review: [], notes: {}, steps: {}, ratings: {}, selectedId: "", focusMode: "india", trainingVersion: "" };
+  }
+}
+
+function normalizeProgram() {
+  progress.done = Array.isArray(progress.done) ? progress.done : [];
+  progress.review = Array.isArray(progress.review) ? progress.review : [];
+  progress.notes = progress.notes || {};
+  progress.steps = progress.steps || {};
+  progress.ratings = progress.ratings || {};
+  progress.focusMode = progress.focusMode || "india";
+  if (progress.trainingVersion !== programVersion) {
+    progress.trainingVersion = programVersion;
+    if (!isIndianMaterialId(progress.selectedId)) {
+      progress.selectedId = indiaDrillOrder[0];
+    }
   }
 }
 
 function saveProgress() {
   progress.selectedId = state.selectedId;
+  progress.focusMode = state.focusMode;
+  progress.trainingVersion = programVersion;
   try {
     localStorage.setItem(storageKey, JSON.stringify(progress));
   } catch {
@@ -592,6 +625,22 @@ function saveProgress() {
 
 function uniqueValues(key) {
   return [...new Set(materials.map((item) => item[key]))].sort((a, b) => a.localeCompare(b, "zh-CN"));
+}
+
+function isIndianMaterial(item) {
+  return item?.accent === "印度英语";
+}
+
+function isIndianMaterialId(id) {
+  return isIndianMaterial(materials.find((item) => item.id === id));
+}
+
+function orderedIndianMaterials() {
+  const ordered = indiaDrillOrder
+    .map((id) => materials.find((item) => item.id === id))
+    .filter(Boolean);
+  const rest = materials.filter((item) => isIndianMaterial(item) && !indiaDrillOrder.includes(item.id));
+  return [...ordered, ...rest];
 }
 
 function filteredMaterials() {
@@ -647,10 +696,15 @@ function renderSelected() {
   const item = selectedMaterial();
   const done = progress.done.includes(item.id);
   const review = progress.review.includes(item.id);
+  const indian = isIndianMaterial(item);
 
   els.selectedMeta.textContent = `${item.source} · ${item.format} · ${item.duration}`;
   els.selectedTitle.textContent = item.title;
   els.selectedFit.textContent = item.fit;
+  els.drillHint.textContent = indian
+    ? "今天不要追每个词。先抓句子节奏和内容词：名词、动词、数字、学校相关词；漏掉虚词也没关系。"
+    : "这条适合作为热身。主训练建议切回印度英语材料，练节奏和内容词捕捉。";
+  els.drillHint.hidden = false;
   els.openSource.href = item.url;
   els.sourceMark.textContent = item.sourceCode;
   els.sourceMark.style.background = sourceColor(item.sourceCode);
@@ -668,6 +722,8 @@ function renderSelected() {
   els.toggleReview.innerHTML = `<i data-lucide="${review ? "bookmark-check" : "bookmark"}"></i>`;
   els.toggleReview.title = review ? "已加入复习" : "加入复习";
   els.toggleReview.setAttribute("aria-label", review ? "已加入复习" : "加入复习");
+  els.taskModeLabel.textContent = state.focusMode === "india" ? "印度节奏专项" : "今日任务";
+  els.focusIndian.classList.toggle("active", state.focusMode === "india");
 
   renderSteps(item);
   refreshIcons();
@@ -687,7 +743,35 @@ function sourceColor(code) {
 
 function renderSteps(item) {
   const saved = progress.steps[item.id] || {};
-  const steps = [
+  const steps = isIndianMaterial(item) ? indianRhythmSteps(item) : standardSteps(item);
+
+  els.trainingSteps.innerHTML = steps
+    .map(
+      (step) => `
+        <article class="step-card ${saved[step.id] ? "is-done" : ""}">
+          <label>
+            <input type="checkbox" data-step="${step.id}" ${saved[step.id] ? "checked" : ""} />
+            <span class="step-title">${step.title}</span>
+            <span class="step-time">${step.time}</span>
+          </label>
+          <p>${step.text}</p>
+        </article>
+      `
+    )
+    .join("");
+
+  els.trainingSteps.querySelectorAll("input[type='checkbox']").forEach((input) => {
+    input.addEventListener("change", () => {
+      progress.steps[item.id] = progress.steps[item.id] || {};
+      progress.steps[item.id][input.dataset.step] = input.checked;
+      input.closest(".step-card")?.classList.toggle("is-done", input.checked);
+      saveProgress();
+    });
+  });
+}
+
+function standardSteps(item) {
+  return [
     {
       id: "blind",
       title: "裸听",
@@ -713,30 +797,35 @@ function renderSteps(item) {
       text: "0.9x 理清细节，1.0x 正常听，1.25x 抗压听。最后用 5 句话复述。"
     }
   ];
+}
 
-  els.trainingSteps.innerHTML = steps
-    .map(
-      (step) => `
-        <article class="step-card ${saved[step.id] ? "is-done" : ""}">
-          <label>
-            <input type="checkbox" data-step="${step.id}" ${saved[step.id] ? "checked" : ""} />
-            <span class="step-title">${step.title}</span>
-            <span class="step-time">${step.time}</span>
-          </label>
-          <p>${step.text}</p>
-        </article>
-      `
-    )
-    .join("");
-
-  els.trainingSteps.querySelectorAll("input[type='checkbox']").forEach((input) => {
-    input.addEventListener("change", () => {
-      progress.steps[item.id] = progress.steps[item.id] || {};
-      progress.steps[item.id][input.dataset.step] = input.checked;
-      input.closest(".step-card")?.classList.toggle("is-done", input.checked);
-      saveProgress();
-    });
-  });
+function indianRhythmSteps(item) {
+  return [
+    {
+      id: "blind",
+      title: "抓骨架",
+      time: "6m",
+      text: `原速听一遍，只写主题、说话人立场和 3 个内容词。先抓：${item.phrases.slice(0, 3).join(" / ")}。`
+    },
+    {
+      id: "decode",
+      title: "切节奏",
+      time: "14m",
+      text: "截 30-60 秒，按意群暂停，不逐词抄。用斜线标出停顿，圈出重读的名词、动词、数字。"
+    },
+    {
+      id: "shadow",
+      title: "回声跟读",
+      time: "10m",
+      text: "每次只跟 3-6 个词，模仿音节节奏和句尾语气。印度英语常更像 syllable-timed，不要套美式弱读预期。"
+    },
+    {
+      id: "speed",
+      title: "回原速",
+      time: "10m",
+      text: "0.85x 理清结构，1.0x 听两遍不断开。最后写 5 个 bullet：主题、原因、例子、数字、下一步。"
+    }
+  ];
 }
 
 function renderMaterialCards() {
@@ -806,10 +895,15 @@ function saveNotesFromDrawer() {
 }
 
 function pickToday() {
-  const unseen = materials.filter((item) => !progress.done.includes(item.id));
-  const pool = unseen.length > 0 ? unseen : materials;
-  const weighted = pool.sort((a, b) => b.priority - a.priority).slice(0, 12);
-  const next = weighted[Math.floor(Math.random() * weighted.length)];
+  const basePool = state.focusMode === "india" ? orderedIndianMaterials() : materials;
+  const currentIndex = Math.max(0, basePool.findIndex((item) => item.id === state.selectedId));
+  const unseen = basePool.filter((item) => !progress.done.includes(item.id) && item.id !== state.selectedId);
+  const pool = unseen.length > 0 ? unseen : basePool.filter((item) => item.id !== state.selectedId);
+  const nextInOrder = basePool
+    .slice(currentIndex + 1)
+    .concat(basePool.slice(0, currentIndex))
+    .find((item) => pool.includes(item));
+  const next = nextInOrder || pool[0] || materials[0];
   selectMaterial(next.id);
 }
 
@@ -1019,10 +1113,10 @@ function renderGuidePanel() {
   els.drawerTitle.textContent = "训练方法";
   els.drawerBody.innerHTML = `
     <ul class="guide-list">
-      <li><strong>05m</strong><span>裸听一遍，只写主旨、人物关系、一个关键数字或行动。</span></li>
-      <li><strong>15m</strong><span>截取 45-90 秒精听，逐句暂停，校对文本。</span></li>
-      <li><strong>10m</strong><span>影子跟读三遍，模仿停顿、重音和句尾语气。</span></li>
-      <li><strong>10m</strong><span>0.9x 理清细节，1.0x 正常听，1.25x 抗压听。</span></li>
+      <li><strong>先骨架</strong><span>印度英语听不懂时，先抓名词、动词、数字和态度词，不要追 every / the / to 这类虚词。</span></li>
+      <li><strong>切意群</strong><span>截 30-60 秒，用斜线标停顿。目标是听懂 phrase groups，不是单词听写。</span></li>
+      <li><strong>跟节奏</strong><span>回声跟读 3-6 个词一组，模仿音节节奏。印度英语常更平均，不一定像英美口音那样大量弱读。</span></li>
+      <li><strong>回原速</strong><span>0.85x 只是拆解工具，最后必须回到 1.0x，输出 5 个 bullet。</span></li>
     </ul>
   `;
 }
@@ -1049,6 +1143,17 @@ function escapeAttribute(value) {
 
 function setupEvents() {
   els.pickToday.addEventListener("click", pickToday);
+  els.focusIndian.addEventListener("click", () => {
+    state.focusMode = "india";
+    const pool = orderedIndianMaterials();
+    const next = pool.find((item) => !progress.done.includes(item.id)) || pool[0];
+    if (next) {
+      selectMaterial(next.id);
+    } else {
+      saveProgress();
+      renderSelected();
+    }
+  });
   els.homeButton.addEventListener("click", closeDrawer);
   els.panelButtons.forEach((button) => {
     button.addEventListener("click", () => {
@@ -1084,4 +1189,5 @@ function setupEvents() {
 
 setupEvents();
 renderSelected();
+saveProgress();
 refreshIcons();
